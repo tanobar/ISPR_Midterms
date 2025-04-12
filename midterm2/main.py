@@ -27,10 +27,10 @@ def main():
 
     # Evaluate on validation data
     val_error4 = rbm4.reconstruction_error(val_loader)
-    print(f"Validation Reconstruction Error: {val_error4}")
+    print(f"Validation Reconstruction Error with k = 4: {val_error4}")
 
     val_error8 = rbm8.reconstruction_error(val_loader)
-    print(f"Validation Reconstruction Error: {val_error8}")
+    print(f"Validation Reconstruction Error with k = 8: {val_error8}")
 
     # save the models
     torch.save(rbm4, 'rbm4.pth')
