@@ -59,7 +59,6 @@ class RBM:
     def train(self, data_loader, epochs=10):
         for epoch in range(epochs):
             epoch_error = 0
-            print(f"Epoch {epoch + 1}/{epochs}")
             for batch in tqdm(data_loader, desc="Training Batches", leave=False):
                 # Extract data from batch (ignore labels)
                 batch, _ = batch  # Unpack the tuple (data, labels)
@@ -83,10 +82,14 @@ class RBM:
         return total_error / len(data_loader.dataset)
 
     def save_model(self, path):
+        # Save the model's parameters (weights and biases) using torch.save
         torch.save({'W': self.W, 'v_bias': self.v_bias, 'h_bias': self.h_bias}, path)
+        print(f"Model saved to {path}")
 
     def load_model(self, path):
+        # Load the model's parameters (weights and biases) using torch.load
         checkpoint = torch.load(path, map_location=self.device)
-        self.W = checkpoint['W'].to(self.device)
-        self.v_bias = checkpoint['v_bias'].to(self.device)
-        self.h_bias = checkpoint['h_bias'].to(self.device)
+        self.W.data = checkpoint['W'].to(self.device)
+        self.v_bias.data = checkpoint['v_bias'].to(self.device)
+        self.h_bias.data = checkpoint['h_bias'].to(self.device)
+        print(f"Model loaded from {path}")
