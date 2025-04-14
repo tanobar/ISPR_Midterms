@@ -5,43 +5,43 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torchvision import datasets, transforms
+from torch.utils.data import TensorDataset, DataLoader
 
 
-def encode_test_images(rbm, test_loader, device):
-    # Dictionary to store one image per digit (0-9)
-    digit_representations = {}
+def encode_dataset(rbm, data_loader, device):
+    # Lists to store encodings and labels
+    encodings = []
+    labels = []
 
-    # Iterate through the test dataset
-    for batch, labels in test_loader:
+    # Iterate through the dataset
+    for batch, batch_labels in data_loader:
         batch = batch.to(device)  # Move to the correct device
-        for img, label in zip(batch, labels):
-            label = label.item()  # Convert label tensor to integer
-            if label not in digit_representations:
-                # Compute hidden neuron activations
-                hidden_activations = rbm.visible_to_hidden(img.view(1, -1))
-                digit_representations[label] = hidden_activations
-            # Stop if we have one image per digit
-            if len(digit_representations) == 10:
-                break
-        if len(digit_representations) == 10:
-            break
+        # Compute hidden neuron activations for the entire batch
+        hidden_activations = rbm.visible_to_hidden(batch)
+        encodings.append(hidden_activations.cpu())  # Store encodings
+        labels.append(batch_labels)  # Store labels
 
-    return digit_representations
+    # Concatenate all batches into a single tensor
+    encodings = torch.cat(encodings, dim=0)
+    labels = torch.cat(labels, dim=0)
+
+    return encodings, labels
 
 
-def save_encodings(path, encodings):
-    # Save the encoded representations using pickle
+def save_encodings(path, encodings, labels):
+    # Save the encoded representations and labels using pickle
     with open(path, 'wb') as f:
-        pickle.dump(encodings, f)
-    print(f"Encodings saved to {path}")
+        pickle.dump({'encodings': encodings, 'labels': labels}, f)
+    print(f"Encodings and labels saved to {path}")
 
 
 def load_encodings(path):
-    # Load the encoded representations using pickle
+    # Load the encoded representations and labels using pickle
     with open(path, 'rb') as f:
-        encodings = pickle.load(f)
-    print(f"Encodings loaded from {path}")
-    return encodings
+        data = pickle.load(f)
+    print(f"Encodings and labels loaded from {path}")
+    return data['encodings'], data['labels']
+
 
 class SimpleClassifier(nn.Module):
     def __init__(self, input_dim, num_classes):
@@ -51,6 +51,7 @@ class SimpleClassifier(nn.Module):
     def forward(self, x):
         return self.fc(x)
     
+
 def train_classifier_on_mnist(train_loader, input_dim, num_classes, device, num_epochs=100, lr=0.001):
     # Define the classifier
     classifier = SimpleClassifier(input_dim, num_classes).to(device)
@@ -60,7 +61,7 @@ def train_classifier_on_mnist(train_loader, input_dim, num_classes, device, num_
     optimizer = optim.Adam(classifier.parameters(), lr=lr)
 
     # Training loop
-    print("Training classifier on raw MNIST data...")
+    print("Training classifier...")
     for epoch in range(num_epochs):
         classifier.train()
         epoch_loss = 0
@@ -75,6 +76,7 @@ def train_classifier_on_mnist(train_loader, input_dim, num_classes, device, num_
         print(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {epoch_loss:.4f}")
 
     return classifier
+
 
 def evaluate_classifier(classifier, test_loader, device):
     classifier.eval()  # Set the classifier to evaluation mode
@@ -92,28 +94,10 @@ def evaluate_classifier(classifier, test_loader, device):
     accuracy = correct / total
     return accuracy
 
-def classify_encodings(rbm, classifier, encodings, device):
-    classifier.eval()  # Set the classifier to evaluation mode
-
-    # Reconstruct the original inputs from the encodings
-    reconstructed_inputs = []
-    for encoding in encodings.values():
-        reconstructed = rbm.hidden_to_visible(encoding).view(-1)  # Reconstruct and flatten
-        reconstructed_inputs.append(reconstructed)
-
-    # Stack the reconstructed inputs into a single tensor
-    reconstructed_tensor = torch.stack(reconstructed_inputs).to(device)
-
-    with torch.no_grad():  # Disable gradient computation for evaluation
-        outputs = classifier(reconstructed_tensor)
-        _, predicted = torch.max(outputs, 1)  # Get the class with the highest score
-
-    return predicted.cpu().numpy()  # Return predictions as a NumPy array
-
 
 def main():
     visible_dim = 784  # For MNIST
-    hidden_dim = 256
+    hidden_dim = 256  # Number of hidden neurons in RBM
     num_classes = 10  # Digits 0-9
 
     # Use GPU if available
@@ -122,18 +106,23 @@ def main():
 
     rbm4_path = 'rbm4.pth'
     rbm8_path = 'rbm8.pth'
-    rbm4_encodings_path = 'rbm4_encodings.pkl'
-    rbm8_encodings_path = 'rbm8_encodings.pkl'
-    classifier_path = "mnist_classifier.pth"
+    rbm4_train_encodings_path = 'rbm4_train_encodings.pkl'
+    rbm4_test_encodings_path = 'rbm4_test_encodings.pkl'
+    rbm8_train_encodings_path = 'rbm8_train_encodings.pkl'
+    rbm8_test_encodings_path = 'rbm8_test_encodings.pkl'
+    classifier4_path = "mnist_classifier4.pth"
+    classifier8_path = "mnist_classifier8.pth"
 
     # Initialize RBMs
     rbm4 = RBM(visible_dim, hidden_dim, k=4, lr=0.01, device=device)
     rbm8 = RBM(visible_dim, hidden_dim, k=8, lr=0.01, device=device)
 
-    # Load the MNIST training data
+    # Load the MNIST training and test data
     transform = transforms.Compose([transforms.ToTensor(), transforms.Lambda(lambda x: x.view(-1))])
-    mnist_data = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
-    data_loader = torch.utils.data.DataLoader(mnist_data, batch_size=10, shuffle=True)
+    mnist_train_data = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
+    mnist_test_data = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+    train_loader = torch.utils.data.DataLoader(mnist_train_data, batch_size=10, shuffle=True)
+    test_loader = torch.utils.data.DataLoader(mnist_test_data, batch_size=10, shuffle=False)
 
     # Check and load/train RBM4
     if os.path.exists(rbm4_path):
@@ -141,8 +130,20 @@ def main():
         rbm4.load_model(rbm4_path)
     else:
         print("RBM4 model not found. Training RBM4...")
-        rbm4.train(data_loader, epochs=100)
+        rbm4.train(train_loader, epochs=100)
         rbm4.save_model(rbm4_path)
+
+    # Encode training and test datasets using RBM4
+    if os.path.exists(rbm4_train_encodings_path) and os.path.exists(rbm4_test_encodings_path):
+        print("RBM4 encodings found. Loading encodings...")
+        rbm4_train_encodings, rbm4_train_labels = load_encodings(rbm4_train_encodings_path)
+        rbm4_test_encodings, rbm4_test_labels = load_encodings(rbm4_test_encodings_path)
+    else:
+        print("RBM4 encodings not found. Encoding datasets using RBM4...")
+        rbm4_train_encodings, rbm4_train_labels = encode_dataset(rbm4, train_loader, device)
+        rbm4_test_encodings, rbm4_test_labels = encode_dataset(rbm4, test_loader, device)
+        save_encodings(rbm4_train_encodings_path, rbm4_train_encodings, rbm4_train_labels)
+        save_encodings(rbm4_test_encodings_path, rbm4_test_encodings, rbm4_test_labels)
 
     # Check and load/train RBM8
     if os.path.exists(rbm8_path):
@@ -150,61 +151,63 @@ def main():
         rbm8.load_model(rbm8_path)
     else:
         print("RBM8 model not found. Training RBM8...")
-        rbm8.train(data_loader, epochs=100)
+        rbm8.train(train_loader, epochs=100)
         rbm8.save_model(rbm8_path)
 
-    # Load MNIST test data
-    mnist_test_data = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
-    test_loader = torch.utils.data.DataLoader(mnist_test_data, batch_size=10, shuffle=False)
-
-    # Encode test images using RBM4
-    if os.path.exists(rbm4_encodings_path):
-        print("RBM4 encodings found. Loading encodings...")
-        rbm4_representations = load_encodings(rbm4_encodings_path)
-    else:
-        print("RBM4 encodings not found. Encoding test images using RBM4...")
-        rbm4_representations = encode_test_images(rbm4, test_loader, device)
-        save_encodings(rbm4_encodings_path, rbm4_representations)
-
-    # Encode test images using RBM8
-    if os.path.exists(rbm8_encodings_path):
+    # Encode training and test datasets using RBM8
+    if os.path.exists(rbm8_train_encodings_path) and os.path.exists(rbm8_test_encodings_path):
         print("RBM8 encodings found. Loading encodings...")
-        rbm8_representations = load_encodings(rbm8_encodings_path)
+        rbm8_train_encodings, rbm8_train_labels = load_encodings(rbm8_train_encodings_path)
+        rbm8_test_encodings, rbm8_test_labels = load_encodings(rbm8_test_encodings_path)
     else:
-        print("RBM8 encodings not found. Encoding test images using RBM8...")
-        rbm8_representations = encode_test_images(rbm8, test_loader, device)
-        save_encodings(rbm8_encodings_path, rbm8_representations)
+        print("RBM8 encodings not found. Encoding datasets using RBM8...")
+        rbm8_train_encodings, rbm8_train_labels = encode_dataset(rbm8, train_loader, device)
+        rbm8_test_encodings, rbm8_test_labels = encode_dataset(rbm8, test_loader, device)
+        save_encodings(rbm8_train_encodings_path, rbm8_train_encodings, rbm8_train_labels)
+        save_encodings(rbm8_test_encodings_path, rbm8_test_encodings, rbm8_test_labels)
 
-    # Check if the classifier already exists
-    if os.path.exists(classifier_path):
-        print("Classifier found. Loading classifier...")
-        classifier = SimpleClassifier(visible_dim, num_classes).to(device)
-        classifier.load_state_dict(torch.load(classifier_path))
-        print("Classifier loaded.")
+    # Check if the classifier4 already exists
+    if os.path.exists(classifier4_path):
+        print("Classifier4 found. Loading classifier4...")
+        classifier4 = SimpleClassifier(hidden_dim, num_classes).to(device)
+        classifier4.load_state_dict(torch.load(classifier4_path))
+        print("Classifier4 loaded.")
     else:
-        # Train the classifier on MNIST training data
-        classifier = train_classifier_on_mnist(data_loader, visible_dim, num_classes, device)
-        # Save the trained classifier
-        torch.save(classifier.state_dict(), classifier_path)
-        print("Classifier trained and saved.")
+        # Train the classifier4 on MNIST training data
+        # Create DataLoader for RBM4-encoded training data
+        rbm4_train_dataset = TensorDataset(rbm4_train_encodings, rbm4_train_labels)
+        rbm4_train_loader = DataLoader(rbm4_train_dataset, batch_size=100, shuffle=True)
+        classifier4 = train_classifier_on_mnist(rbm4_train_loader, hidden_dim, num_classes, device)
+        # Save the trained classifier4
+        torch.save(classifier4.state_dict(), classifier4_path)
+        print("Classifier4 trained and saved.")
 
-    # Evaluate the classifier on the MNIST test data
-    accuracy = evaluate_classifier(classifier, test_loader, device)
-    print(f"Classifier accuracy on MNIST test data: {accuracy:.4f}")
+    # Check if the classifier8 already exists
+    if os.path.exists(classifier8_path):
+        print("Classifier8 found. Loading classifier8...")
+        classifier8 = SimpleClassifier(hidden_dim, num_classes).to(device)
+        classifier8.load_state_dict(torch.load(classifier8_path))
+        print("Classifier8 loaded.")
+    else:
+        # Train the classifier8 on MNIST training data
+        # Create DataLoader for RBM8-encoded training data
+        rbm8_train_dataset = TensorDataset(rbm8_train_encodings, rbm8_train_labels)
+        rbm8_train_loader = DataLoader(rbm8_train_dataset, batch_size=100, shuffle=True)
+        classifier8 = train_classifier_on_mnist(rbm8_train_loader, hidden_dim, num_classes, device)
+        # Save the trained classifier8
+        torch.save(classifier8.state_dict(), classifier8_path)
+        print("Classifier8 trained and saved.")
 
-    # Classify RBM4 encodings
-    print("Classifying RBM4 encodings...")
-    rbm4_predictions = classify_encodings(rbm4, classifier, rbm4_representations, device)
-    print("RBM4 Predictions:")
-    for digit, prediction in zip(rbm4_representations.keys(), rbm4_predictions):
-        print(f"Original Digit: {digit}, Predicted: {prediction}")
+    # Evaluate the classifiers on the MNIST test data encodings
+    rbm4_test_dataset = TensorDataset(rbm4_test_encodings, rbm8_test_labels)
+    rbm4_test_loader = DataLoader(rbm4_test_dataset, batch_size=100, shuffle=False)
+    accuracy4 = evaluate_classifier(classifier4, rbm4_test_loader, device)
+    print(f"Classifier4 accuracy: {accuracy4:.4f}")
 
-    # Classify RBM8 encodings
-    print("Classifying RBM8 encodings...")
-    rbm8_predictions = classify_encodings(rbm8, classifier, rbm8_representations, device)
-    print("RBM8 Predictions:")
-    for digit, prediction in zip(rbm8_representations.keys(), rbm8_predictions):
-        print(f"Original Digit: {digit}, Predicted: {prediction}")
+    rbm8_test_dataset = TensorDataset(rbm8_test_encodings, rbm8_test_labels)
+    rbm8_test_loader = DataLoader(rbm8_test_dataset, batch_size=100, shuffle=False)
+    accuracy8 = evaluate_classifier(classifier8, rbm8_test_loader, device)
+    print(f"Classifier8 accuracy: {accuracy8:.4f}")
 
 
 if __name__ == "__main__":
