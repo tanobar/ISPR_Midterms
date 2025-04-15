@@ -46,13 +46,15 @@ def load_encodings(path):
 class SimpleClassifier(nn.Module):
     def __init__(self, input_dim, num_classes):
         super(SimpleClassifier, self).__init__()
-        self.fc = nn.Linear(input_dim, num_classes)  # Fully connected layer
+        self.fc1 = nn.Linear(input_dim, 128)
+        self.fc2 = nn.Linear(128, num_classes)
 
     def forward(self, x):
-        return self.fc(x)
+        x = torch.relu(self.fc1(x))
+        return self.fc2(x)
     
 
-def train_classifier_on_mnist(train_loader, input_dim, num_classes, device, num_epochs=100, lr=0.001):
+def train_classifier_on_mnist(train_loader, input_dim, num_classes, device, num_epochs=50, lr=0.001):
     # Define the classifier
     classifier = SimpleClassifier(input_dim, num_classes).to(device)
 
