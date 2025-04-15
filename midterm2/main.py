@@ -43,9 +43,9 @@ def load_encodings(path):
     return data['encodings'], data['labels']
 
 
-class SimpleClassifier(nn.Module):
+class MNISTClassifier(nn.Module):
     def __init__(self, input_dim, num_classes):
-        super(SimpleClassifier, self).__init__()
+        super(MNISTClassifier, self).__init__()
         self.fc1 = nn.Linear(input_dim, 128)
         self.fc2 = nn.Linear(128, num_classes)
 
@@ -54,9 +54,9 @@ class SimpleClassifier(nn.Module):
         return self.fc2(x)
     
 
-def train_classifier_on_mnist(train_loader, input_dim, num_classes, device, num_epochs=50, lr=0.001):
+def train_classifier_on_mnist(train_loader, input_dim, num_classes, device, num_epochs=40, lr=0.001):
     # Define the classifier
-    classifier = SimpleClassifier(input_dim, num_classes).to(device)
+    classifier = MNISTClassifier(input_dim, num_classes).to(device)
 
     # Define loss function and optimizer
     criterion = nn.CrossEntropyLoss()
@@ -171,7 +171,7 @@ def main():
     # Check if the classifier4 already exists
     if os.path.exists(classifier4_path):
         print("Classifier4 found. Loading classifier4...")
-        classifier4 = SimpleClassifier(hidden_dim, num_classes).to(device)
+        classifier4 = MNISTClassifier(hidden_dim, num_classes).to(device)
         classifier4.load_state_dict(torch.load(classifier4_path))
         print("Classifier4 loaded.")
     else:
@@ -187,7 +187,7 @@ def main():
     # Check if the classifier8 already exists
     if os.path.exists(classifier8_path):
         print("Classifier8 found. Loading classifier8...")
-        classifier8 = SimpleClassifier(hidden_dim, num_classes).to(device)
+        classifier8 = MNISTClassifier(hidden_dim, num_classes).to(device)
         classifier8.load_state_dict(torch.load(classifier8_path))
         print("Classifier8 loaded.")
     else:
