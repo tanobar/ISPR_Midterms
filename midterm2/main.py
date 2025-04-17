@@ -132,7 +132,7 @@ def main():
         rbm4.load_model(rbm4_path)
     else:
         print("RBM4 model not found. Training RBM4...")
-        rbm4.train(train_loader, epochs=100)
+        rbm4.train(train_loader, epochs=50)
         rbm4.save_model(rbm4_path)
 
     # Encode training and test datasets using RBM4
@@ -153,7 +153,7 @@ def main():
         rbm8.load_model(rbm8_path)
     else:
         print("RBM8 model not found. Training RBM8...")
-        rbm8.train(train_loader, epochs=100)
+        rbm8.train(train_loader, epochs=50)
         rbm8.save_model(rbm8_path)
 
     # Encode training and test datasets using RBM8

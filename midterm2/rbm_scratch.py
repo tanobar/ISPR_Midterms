@@ -17,7 +17,6 @@ class RBM:
         self.h_bias = torch.zeros(hidden_dim, device=self.device)
     
     def sample_from_p(self, p):
-        # bernoulli sampling given probabilities
         return F.relu(torch.sign(p - torch.rand_like(p, device=self.device)))
     
     def visible_to_hidden(self, v):  # forward pass
