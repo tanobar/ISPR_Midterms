@@ -13,19 +13,26 @@ class DAE(nn.Module):
         self.mode = mode
 
         if mode == 'conv':
-            # Convolutional Encoder (3x32x32 -> 32x8x8)
+            # Convolutional Encoder
             self.encoder = nn.Sequential(
-                nn.Conv2d(3, 16, 3, stride=2, padding=1),  # 16x16x16
+                nn.Conv2d(3, 64, 3, padding=1),  # 32x32
                 nn.ReLU(),
-                nn.Conv2d(16, 32, 3, stride=2, padding=1), # 32x8x8
+                nn.MaxPool2d(2),                  # 16x16
+                nn.Conv2d(64, 128, 3, padding=1),
                 nn.ReLU(),
+                nn.MaxPool2d(2),                  # 8x8
+                nn.Conv2d(128, 256, 3, padding=1) # 8x8
             )
-            # Convolutional Decoder (32x8x8 -> 3x32x32)
+            # Convolutional Decoder
             self.decoder = nn.Sequential(
-                nn.ConvTranspose2d(32, 16, 3, stride=2, padding=1, output_padding=1),  # 16x16x16
+                nn.Conv2d(256, 128, 3, padding=1),  # 8x8
                 nn.ReLU(),
-                nn.ConvTranspose2d(16, 3, 3, stride=2, padding=1, output_padding=1),   # 3x32x32
-                nn.Tanh(),
+                nn.Upsample(scale_factor=2),        # 16x16
+                nn.Conv2d(128, 64, 3, padding=1),
+                nn.ReLU(),
+                nn.Upsample(scale_factor=2),        # 32x32
+                nn.Conv2d(64, 3, 3, padding=1),
+                nn.Tanh()
             )
         elif mode == 'dense':
             # Dense Encoder
@@ -35,7 +42,7 @@ class DAE(nn.Module):
                 nn.Linear(1024, 512),
                 nn.ReLU(),
                 nn.Linear(512, 256),
-                nn.ReLU(),
+                nn.ReLU()
             )
             # Dense Decoder
             self.decoder = nn.Sequential(
@@ -44,7 +51,7 @@ class DAE(nn.Module):
                 nn.Linear(512, 1024),
                 nn.ReLU(),
                 nn.Linear(1024, 3 * 32 * 32),
-                nn.Tanh(),
+                nn.Tanh()
             )
         else:
             raise ValueError("Invalid mode. Choose 'conv' or 'dense'.")

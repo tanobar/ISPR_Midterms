@@ -45,7 +45,7 @@ def main():
     print(f"Test PSNR: {psnr_score:.2f} dB, SSIM: {ssim_score:.4f}")
 
     # Qualitative visualization
-    #ddae.visualize_results(test_loader)
+    ddae.visualize_results(test_loader)
 
     cdae = DAE(mode='conv')
     if os.path.exists(cdae_model_path):
@@ -65,6 +65,8 @@ def main():
 
     # Qualitative visualization
     cdae.visualize_results(test_loader)
+
+
 
 if __name__ == "__main__":
     main()
