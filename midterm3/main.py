@@ -28,6 +28,7 @@ def main():
 
     print("Data loaded successfully.")
 
+    # Initialize Dense DAE model
     ddae = DAE(mode='dense')
     if os.path.exists(ddae_model_path):
         print("Model found. Loading the model...")
@@ -40,13 +41,14 @@ def main():
     
     print("DDAE model ready.")
 
-    # Quantitative evaluation
+    # Quantitative evaluation DDAE
     psnr_score, ssim_score = ddae.evaluate(test_loader)
     print(f"Test PSNR: {psnr_score:.2f} dB, SSIM: {ssim_score:.4f}")
 
-    # Qualitative visualization
+    # Qualitative visualization DDAE
     ddae.visualize_results(test_loader)
 
+    # Initialize Convolutional DAE model
     cdae = DAE(mode='conv')
     if os.path.exists(cdae_model_path):
         print("Model found. Loading the model...")
@@ -59,11 +61,11 @@ def main():
 
     print("CDAE model ready.")
 
-    # Quantitative evaluation
+    # Quantitative evaluation CDAE
     psnr_score, ssim_score = cdae.evaluate(test_loader)
     print(f"Test PSNR: {psnr_score:.2f} dB, SSIM: {ssim_score:.4f}")
 
-    # Qualitative visualization
+    # Qualitative visualization CDAE
     cdae.visualize_results(test_loader)
 
 

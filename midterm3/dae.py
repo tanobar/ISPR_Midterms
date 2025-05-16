@@ -15,23 +15,23 @@ class DAE(nn.Module):
         if mode == 'conv':
             # Convolutional Encoder
             self.encoder = nn.Sequential(
-                nn.Conv2d(3, 64, 3, padding=1),  # 32x32
+                nn.Conv2d(3, 64, 3, padding=1),   # 32x32
                 nn.ReLU(),
-                nn.MaxPool2d(2),                  # 16x16
-                nn.Conv2d(64, 128, 3, padding=1),
+                nn.MaxPool2d(2),
+                nn.Conv2d(64, 128, 3, padding=1), # 16x16
                 nn.ReLU(),
-                nn.MaxPool2d(2),                  # 8x8
+                nn.MaxPool2d(2),
                 nn.Conv2d(128, 256, 3, padding=1) # 8x8
             )
             # Convolutional Decoder
             self.decoder = nn.Sequential(
                 nn.Conv2d(256, 128, 3, padding=1),  # 8x8
                 nn.ReLU(),
-                nn.Upsample(scale_factor=2),        # 16x16
-                nn.Conv2d(128, 64, 3, padding=1),
+                nn.Upsample(scale_factor=2),
+                nn.Conv2d(128, 64, 3, padding=1),   # 16x16
                 nn.ReLU(),
-                nn.Upsample(scale_factor=2),        # 32x32
-                nn.Conv2d(64, 3, 3, padding=1),
+                nn.Upsample(scale_factor=2),
+                nn.Conv2d(64, 3, 3, padding=1),     # 32x32
                 nn.Tanh()
             )
         elif mode == 'dense':
@@ -76,8 +76,7 @@ class DAE(nn.Module):
 
 
     def train_model(self, train_loader, num_epochs=20, lr=1e-4, print_interval=100):
-
-        #print_interval (int): Print loss every N batches
+        #parameter print_interval (int): Print loss every N examples
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.to(device)
@@ -106,7 +105,6 @@ class DAE(nn.Module):
 
 
     def evaluate(self, test_loader, noise_factor=0.2):
-
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.to(device)
 
@@ -146,7 +144,6 @@ class DAE(nn.Module):
 
     def visualize_results(self, test_loader, num_images=5):
         """Plot noisy vs reconstructed vs clean images"""
-
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.to(device)
 
