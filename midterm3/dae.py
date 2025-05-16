@@ -108,7 +108,7 @@ class DAE(nn.Module):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.to(device)
 
-        """Compute PSNR and SSIM on test set"""
+        #Compute PSNR and SSIM on test set
         self.eval()  # Set to evaluation mode
         total_psnr = 0.0
         total_ssim = 0.0
@@ -143,7 +143,7 @@ class DAE(nn.Module):
     
 
     def visualize_results(self, test_loader, num_images=5):
-        """Plot noisy vs reconstructed vs clean images"""
+        #Plot noisy vs reconstructed vs clean images
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.to(device)
 
