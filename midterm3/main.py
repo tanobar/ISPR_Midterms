@@ -43,7 +43,7 @@ def main():
 
     # Quantitative evaluation DDAE
     psnr_score, ssim_score = ddae.evaluate(test_loader)
-    print(f"Test PSNR: {psnr_score:.2f} dB, SSIM: {ssim_score:.4f}")
+    print(f"DDAE test PSNR: {psnr_score:.2f} dB, SSIM: {ssim_score:.4f}")
 
     # Qualitative visualization DDAE
     ddae.visualize_results(test_loader)
@@ -63,7 +63,7 @@ def main():
 
     # Quantitative evaluation CDAE
     psnr_score, ssim_score = cdae.evaluate(test_loader)
-    print(f"Test PSNR: {psnr_score:.2f} dB, SSIM: {ssim_score:.4f}")
+    print(f"CDAE test PSNR: {psnr_score:.2f} dB, SSIM: {ssim_score:.4f}")
 
     # Qualitative visualization CDAE
     cdae.visualize_results(test_loader)
